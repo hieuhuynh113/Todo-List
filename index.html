@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo List App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Todo List</h1>
+        
+        <!-- Form thêm todo -->
+        <div class="add-todo">
+            <input type="text" id="todoInput" placeholder="Nhập công việc cần làm...">
+            <button id="addBtn">Thêm</button>
+        </div>
+        
+        <!-- Danh sách todo -->
+        <div class="todo-list">
+            <ul id="todoList">
+                <!-- Các todo sẽ được thêm vào đây bằng JavaScript -->
+            </ul>
+        </div>
+        
+        <!-- Thống kê -->
+        <div class="stats">
+            <span id="totalTodos">Tổng: 0</span>
+            <span id="completedTodos">Hoàn thành: 0</span>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
