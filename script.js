@@ -4,6 +4,16 @@
  * Sử dụng localStorage để lưu trữ dữ liệu
  */
 
+// ===== CONSTANTS =====
+const STORAGE_KEY = 'todos';
+const ENTER_KEY = 'Enter';
+const MESSAGES = {
+    EMPTY_INPUT: 'Vui lòng nhập nội dung công việc!',
+    CONFIRM_DELETE: 'Bạn có chắc chắn muốn xóa công việc này?',
+    EDIT_PROMPT: 'Sửa nội dung công việc:',
+    EMPTY_STATE: 'Chưa có công việc nào. Hãy thêm công việc đầu tiên!'
+};
+
 // ===== KHAI BÁO BIẾN VÀ LẤY CÁC ELEMENT TỪ DOM =====
 // Lấy các element HTML cần thiết để tương tác
 const todoInput = document.getElementById('todoInput');     // Ô input để nhập todo mới
@@ -31,10 +41,38 @@ addBtn.addEventListener('click', addTodo);
 // Lắng nghe sự kiện nhấn phím trong ô input
 // Khi nhấn Enter thì cũng thêm todo như khi click nút "Thêm"
 todoInput.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {  // Kiểm tra xem phím được nhấn có phải Enter không
-        addTodo();            // Gọi hàm thêm todo
+    if (e.key === ENTER_KEY) {  // Sử dụng constant thay vì magic string
+        addTodo();              // Gọi hàm thêm todo
     }
 });
+
+// ===== UTILITY FUNCTIONS =====
+
+/**
+ * Kiểm tra tính hợp lệ của input text
+ * @param {string} text - Text cần kiểm tra
+ * @returns {boolean} true nếu hợp lệ, false nếu không
+ */
+function isValidInput(text) {
+    return text && text.trim().length > 0;
+}
+
+/**
+ * Tạo HTML cho một todo item
+ * @param {Object} todo - Object todo chứa id, text, completed
+ * @returns {string} HTML string cho todo item
+ */
+function createTodoHTML(todo) {
+    return `
+        <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''}
+               onchange="toggleTodo(${todo.id})">
+        <span class="todo-text">${todo.text}</span>
+        <div class="todo-actions">
+            <button class="edit-btn" onclick="editTodo(${todo.id})">Sửa</button>
+            <button class="delete-btn" onclick="deleteTodo(${todo.id})">Xóa</button>
+        </div>
+    `;
+}
 
 // ===== CÁC HÀM XỬ LÝ DỮ LIỆU =====
 
@@ -43,15 +81,21 @@ todoInput.addEventListener('keypress', function(e) {
  * localStorage lưu trữ dữ liệu dưới dạng string, cần parse thành object
  */
 function loadTodos() {
-    // Lấy dữ liệu từ localStorage với key 'todos'
-    const savedTodos = localStorage.getItem('todos');
+    try {
+        // Lấy dữ liệu từ localStorage với key được định nghĩa trong constant
+        const savedTodos = localStorage.getItem(STORAGE_KEY);
 
-    // Kiểm tra xem có dữ liệu đã lưu hay không
-    if (savedTodos) {
-        // Chuyển đổi từ JSON string thành JavaScript array
-        todos = JSON.parse(savedTodos);
+        // Kiểm tra xem có dữ liệu đã lưu hay không
+        if (savedTodos) {
+            // Chuyển đổi từ JSON string thành JavaScript array
+            todos = JSON.parse(savedTodos);
+        }
+        // Nếu không có dữ liệu, todos sẽ giữ nguyên là mảng rỗng []
+    } catch (error) {
+        console.error('Error loading todos from localStorage:', error);
+        // Nếu có lỗi, khởi tạo mảng rỗng
+        todos = [];
     }
-    // Nếu không có dữ liệu, todos sẽ giữ nguyên là mảng rỗng []
 }
 
 /**
@@ -59,8 +103,13 @@ function loadTodos() {
  * Chuyển đổi mảng JavaScript thành JSON string để lưu trữ
  */
 function saveTodos() {
-    // Chuyển đổi mảng todos thành JSON string và lưu vào localStorage
-    localStorage.setItem('todos', JSON.stringify(todos));
+    try {
+        // Chuyển đổi mảng todos thành JSON string và lưu vào localStorage
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    } catch (error) {
+        console.error('Error saving todos to localStorage:', error);
+        alert('Không thể lưu dữ liệu. Vui lòng thử lại!');
+    }
 }
 
 /**
@@ -71,10 +120,10 @@ function addTodo() {
     // Lấy nội dung từ ô input và loại bỏ khoảng trắng thừa
     const todoText = todoInput.value.trim();
 
-    // Kiểm tra validation: không cho phép thêm todo rỗng
-    if (todoText === '') {
-        alert('Vui lòng nhập nội dung công việc!');
-        return; // Dừng thực hiện hàm nếu input rỗng
+    // Sử dụng validation function
+    if (!isValidInput(todoText)) {
+        alert(MESSAGES.EMPTY_INPUT);
+        return; // Dừng thực hiện hàm nếu input không hợp lệ
     }
 
     // Tạo object todo mới với cấu trúc chuẩn
@@ -111,7 +160,7 @@ function displayTodos() {
     // Kiểm tra nếu không có todo nào
     if (todos.length === 0) {
         // Hiển thị thông báo trống
-        todoList.innerHTML = '<li class="empty-state">Chưa có công việc nào. Hãy thêm công việc đầu tiên!</li>';
+        todoList.innerHTML = `<li class="empty-state">${MESSAGES.EMPTY_STATE}</li>`;
         return; // Dừng thực hiện hàm
     }
 
@@ -126,17 +175,8 @@ function displayTodos() {
             li.classList.add('completed');
         }
 
-        // Tạo HTML nội dung cho todo item
-        // Sử dụng template literal (backtick) để dễ dàng nhúng biến
-        li.innerHTML = `
-            <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''}
-                   onchange="toggleTodo(${todo.id})">
-            <span class="todo-text">${todo.text}</span>
-            <div class="todo-actions">
-                <button class="edit-btn" onclick="editTodo(${todo.id})">Sửa</button>
-                <button class="delete-btn" onclick="deleteTodo(${todo.id})">Xóa</button>
-            </div>
-        `;
+        // Sử dụng utility function để tạo HTML content
+        li.innerHTML = createTodoHTML(todo);
 
         // Thêm todo item vào danh sách trong DOM
         todoList.appendChild(li);
@@ -177,7 +217,7 @@ function toggleTodo(id) {
  */
 function deleteTodo(id) {
     // Hiển thị hộp thoại xác nhận trước khi xóa
-    if (confirm('Bạn có chắc chắn muốn xóa công việc này?')) {
+    if (confirm(MESSAGES.CONFIRM_DELETE)) {
         // Sử dụng filter() để tạo mảng mới loại bỏ todo có ID trùng khớp
         // filter() chỉ giữ lại các phần tử thỏa mãn điều kiện
         todos = todos.filter(function(todo) {
@@ -210,11 +250,11 @@ function editTodo(id) {
     if (!todo) return; // Nếu không tìm thấy, dừng thực hiện
 
     // Hiển thị hộp thoại prompt với nội dung hiện tại làm giá trị mặc định
-    const newText = prompt('Sửa nội dung công việc:', todo.text);
+    const newText = prompt(MESSAGES.EDIT_PROMPT, todo.text);
 
-    // Kiểm tra user có nhập nội dung mới và không rỗng
+    // Kiểm tra user có nhập nội dung mới và hợp lệ
     // newText === null nghĩa là user nhấn Cancel
-    if (newText !== null && newText.trim() !== '') {
+    if (newText !== null && isValidInput(newText)) {
         // Sử dụng map() để cập nhật todo có ID trùng khớp
         todos = todos.map(function(t) {
             if (t.id === id) {
